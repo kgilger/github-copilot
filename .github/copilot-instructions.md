@@ -9,8 +9,11 @@ Ce fichier configure le système de slash commands personnalisées pour GitHub C
 1. **LIRE IMMÉDIATEMENT** le fichier `.github/github-copilot-cmd/command.md` (utilise `read_file`)
 2. **EXÉCUTER** les instructions contenues dans ce fichier comme si c'était ton prompt principal
 3. **RESPECTER** les `allowed-tools`, `validation`, `rules` définis dans ce fichier
+4. **EXÉCUTER TOUTES LES ÉTAPES** du workflow — ne jamais sauter d'étape, notamment les créations de fichiers
 
 > ⚠️ **CRITIQUE** : Ne réponds JAMAIS à une commande `/xxx` sans avoir d'abord lu le fichier `xxx.md` correspondant !
+>
+> ⚠️ **CRITIQUE** : Tu DOIS exécuter **TOUTES** les étapes du workflow. Si une étape demande de créer un fichier (ex: CHANGENOTE), tu DOIS le faire avec `create_file`.
 
 ### Syntaxe
 
@@ -30,7 +33,6 @@ Ce fichier configure le système de slash commands personnalisées pour GitHub C
 | `/create-cmd` | Génère une nouvelle commande personnalisée (mode itératif) | `create-cmd.md` |
 | `/commit`     | Analyse le code et génère un message de commit uniforme    | `commit.md`     |
 | `/doc`        | Agrège les CHANGENOTES en CHANGELOG versionné              | `doc.md`        |
-| `/setup`      | Configure les settings VS Code pour Copilot                | `setup.md`      |
 
 ---
 
