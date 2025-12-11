@@ -25,8 +25,9 @@ Analyse les fichiers modifiés, extrait l'essence du changement et génère un m
 Avant exécution, vérifier :
 
 1. [ ] Le répertoire courant est un repo git (`git rev-parse --is-inside-work-tree`)
-2. [ ] Il y a des changements à committer (staged ou unstaged)
-3. [ ] Si aucun changement → exit silencieux
+2. [ ] Il y a des changements à committer (staged ou unstaged) **OU** `--push` est demandé
+3. [ ] Si aucun changement ET pas de `--push` → exit silencieux
+4. [ ] Si aucun changement MAIS `--push` demandé → faire uniquement le push des commits locaux
 
 ## Context
 
@@ -145,7 +146,9 @@ git commit --amend --no-edit
 
 ### 10. Push (si demandé)
 
-- Si `$ARGUMENTS` contient `--push` ou `-p` → push automatique
+- Si `$ARGUMENTS` contient `--push` ou `-p` → `git push`
+- **IMPORTANT** : Faire le push même s'il n'y avait pas de nouveaux changements à committer
+- Si des commits locaux existent (ahead of origin) → les pousser
 - Sinon → ne pas push
 
 ## Rules
