@@ -32,10 +32,10 @@ param(
 
 # Settings recommandes pour Copilot
 $RecommendedSettings = @{
-    "chat.agent.maxRequests" = 100
+    "chat.agent.maxRequests"                     = 100
     "github.copilot.nextEditSuggestions.enabled" = $true
-    "chat.tools.autoApprove" = $true
-    "chat.tools.terminal.autoApprove" = @(
+    "chat.tools.autoApprove"                     = $true
+    "chat.tools.terminal.autoApprove"            = @(
         "git"
         "npm"
         "npx"
@@ -59,9 +59,11 @@ $RecommendedSettings = @{
 function Get-SettingsPath {
     if ($IsWindows -or $env:OS -match "Windows") {
         return "$env:APPDATA\Code\User\settings.json"
-    } elseif ($IsMacOS) {
+    }
+    elseif ($IsMacOS) {
         return "$HOME/Library/Application Support/Code/User/settings.json"
-    } else {
+    }
+    else {
         return "$HOME/.config/Code/User/settings.json"
     }
 }
@@ -105,7 +107,8 @@ function Test-Settings {
         if ($value -eq $RecommendedSettings[$key]) {
             Write-Host "  [OK] $key" -ForegroundColor Green
             $ok += $key
-        } else {
+        }
+        else {
             Write-Host "  [X] $key : manquant ou different" -ForegroundColor Red
             $missing += $key
         }
@@ -114,7 +117,8 @@ function Test-Settings {
     Write-Host ""
     if ($missing.Count -gt 0) {
         Write-Host "-> $($missing.Count) parametre(s) manquant(s). Tape: .\Setup-Copilot.ps1 -Apply" -ForegroundColor Yellow
-    } else {
+    }
+    else {
         Write-Host "-> Tous les settings sont configures !" -ForegroundColor Green
     }
     Write-Host ""
@@ -143,7 +147,8 @@ function Set-Settings {
     # Lire le JSON brut et le convertir en hashtable manuellement
     if ($current -eq $null) {
         $currentHash = @{}
-    } else {
+    }
+    else {
         $currentHash = @{}
         $current.PSObject.Properties | ForEach-Object { $currentHash[$_.Name] = $_.Value }
     }
@@ -167,8 +172,10 @@ function Set-Settings {
 # Main
 if ($Check) {
     Test-Settings
-} elseif ($Apply) {
+}
+elseif ($Apply) {
     Set-Settings
-} else {
+}
+else {
     Show-RecommendedSettings
 }
