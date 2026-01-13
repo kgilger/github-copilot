@@ -28,11 +28,12 @@ Ce fichier configure le système de slash commands personnalisées pour GitHub C
 
 ## 📚 Commandes Disponibles
 
-| Commande      | Description                                                | Fichier         |
-| ------------- | ---------------------------------------------------------- | --------------- |
-| `/create-cmd` | Génère une nouvelle commande personnalisée (mode itératif) | `create-cmd.md` |
-| `/commit`     | Analyse le code et génère un message de commit uniforme    | `commit.md`     |
-| `/doc`        | Agrège les CHANGENOTES en CHANGELOG versionné              | `doc.md`        |
+| Commande            | Description                                                | Fichier               |
+| ------------------- | ---------------------------------------------------------- | --------------------- |
+| `/create-cmd`       | Génère une nouvelle commande personnalisée (mode itératif) | `create-cmd.md`       |
+| `/commit`           | Analyse le code et génère un message de commit uniforme    | `commit.md`           |
+| `/doc`              | Agrège les CHANGENOTES en CHANGELOG versionné              | `doc.md`              |
+| `/clean-migrations` | Archive les migrations EF par version avec FastBuild       | `clean-migrations.md` |
 
 ---
 

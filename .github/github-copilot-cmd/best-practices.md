@@ -200,3 +200,59 @@ git log --oneline -10         # Historique récent
 ### Archivage
 - **Versions séparées** — `docs/versions/vX.Y.Z.md` pour historique
 - **Nettoyage après agrégation** — Supprimer les notes traitées (sauf `--keep`)
+
+---
+
+## 🗄️ Entity Framework / Migrations
+
+### Convention de Nommage
+- **Format standard EF** — `{TIMESTAMP}_{Description}.cs` où timestamp = `YYYYMMDDHHmmss`
+- **Exemple** — `20250626151049_add_user_email_validation.cs`
+- **Descriptif** — Description claire en snake_case
+
+### Snapshot Protection
+- **DataContextModelSnapshot.cs** — JAMAIS archiver, toujours à la racine de `Migrations/`
+- **Designer files** — Ne pas manipuler manuellement, EF les gère automatiquement
+
+### Archivage par Version
+- **Structure** — `Migrations/v{version}/` pour versions stabilisées
+- **Git history** — Utiliser `git mv` (pas `Move-Item`) pour préserver l'historique
+- **Fichiers à archiver** — Seulement les `.cs` de migrations, pas le snapshot
+
+### MSBuild Configuration
+- **FastBuild mode** — Exclure migrations archivées pour accélérer la compilation dev
+- **Syntaxe exclusion** — `<Compile Remove="Migrations\v{version}\**\*.cs" />`
+- **Chemins MSBuild** — Utiliser `\` (backslash) pas `/`
+- **Conditional build** — `<ItemGroup Condition="'$(FastBuild)' == 'true'">` pour exclusion conditionnelle
+
+### Modes de Build
+- **Dev rapide** — `dotnet build /p:FastBuild=true` (exclut anciennes migrations)
+- **Dev complet** — `dotnet build` (inclut tout)
+- **Production** — `dotnet build -c Release` (inclut tout, FastBuild désactivé par défaut)
+
+### Projet Structure
+- **Projet Data unique** — Pattern `*.Data.csproj` pour identifier le projet de données
+- **Multi-projet** — Si plusieurs projets Data, utiliser le premier trouvé
+
+---
+
+## 🔧 .csproj Manipulation
+
+### Lecture/Écriture
+- **Parser XML** — Utiliser des outils XML, pas de regex sur MSBuild
+- **Préserver format** — Garder indentation et structure existante
+- **Commentaires** — Ajouter des commentaires explicatifs pour les configs complexes
+
+### PropertyGroup
+- **Conditional values** — `Condition="'$(Variable)' == 'value'"` pour surcharges
+- **Default values** — `<Var Condition="'$(Var)' == ''">default</Var>`
+
+### ItemGroup
+- **Wildcards** — `**\*.cs` pour inclusion récursive
+- **Exclusions** — `<Compile Remove="path\**\*.cs" />` pour exclure
+- **Ordre** — Alphabétique/chronologique pour lisibilité
+
+### Injection de Config
+- **Placement** — Insérer après le premier `<PropertyGroup>`
+- **Idempotence** — Vérifier existence avant injection
+- **Update** — Compléter plutôt que remplacer si config existe déjà
