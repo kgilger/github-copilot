@@ -1,0 +1,8 @@
+Crée un jeu de Morpion en Angular 17+ avec :
+- NgRx store (actions, reducer, selectors, effects)
+- Mode 1 joueur vs IA intelligente (minimax ou bloque coups gagnants)
+- IA joue via Effects (async)
+- UI moderne avec Angular Material ou Tailwind
+- Smart/Dumb components pattern
+- Animations pour les coups
+- Scoreboard (victoires/défaites/nuls)
