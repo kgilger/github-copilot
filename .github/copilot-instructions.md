@@ -93,3 +93,134 @@ Le générateur `/create-cmd` :
 - Itère avec l'utilisateur pour améliorer
 - Crée le fichier `.github/github-copilot-cmd/<nom>.md`
 - Propose d'enrichir `best-practices.md` avec les nouveaux patterns découverts
+
+---
+
+## 📐 Principes de Développement
+
+### SOLID Principles
+
+Appliquer systématiquement les principes SOLID dans tout le code généré :
+
+#### **S** — Single Responsibility Principle (Responsabilité Unique)
+
+- Une classe, fonction ou méthode doit avoir **une et une seule raison d'être**
+- Éviter les classes surchargées de responsabilités
+- Favorise la modularité et facilite la maintenance
+
+#### **O** — Open/Closed Principle (Ouvert/Fermé)
+
+- Les entités (classe, fonction, module) doivent être **fermées à la modification** mais **ouvertes à l'extension**
+- Ajouter de nouvelles fonctionnalités sans altérer le code existant
+- Privilégier l'héritage, les interfaces et la composition
+
+#### **L** — Liskov Substitution Principle (Substitution de Liskov)
+
+- Une instance de type T doit pouvoir être **remplacée par une instance de son sous-type G** sans altérer la cohérence du programme
+- Garantit que les sous-classes peuvent être utilisées de manière interchangeable avec leurs classes de base
+- Respecter le contrat défini par la classe parent
+
+#### **I** — Interface Segregation Principle (Ségrégation des Interfaces)
+
+- Préférer **plusieurs interfaces spécifiques** plutôt qu'une seule interface générale
+- Les classes ne doivent pas dépendre de méthodes dont elles n'ont pas besoin
+- Réduit les couplages inutiles
+
+#### **D** — Dependency Inversion Principle (Inversion des Dépendances)
+
+- **Dépendre des abstractions, pas des implémentations**
+- Favorise la modularité, la flexibilité et la réutilisabilité
+- Réduire les dépendances directes entre modules
+
+### Conventions de Code
+
+#### Attributs de Classe
+
+- **TOUJOURS** préfixer les attributs d'instance avec `this.`
+- **JAMAIS** utiliser le préfixe `_` pour les attributs privés
+
+**✅ Correct** :
+
+```csharp
+public class Product
+{
+    private string name;
+
+    public Product(string name)
+    {
+        this.name = name;  // Utilise "this."
+    }
+}
+```
+
+**❌ Incorrect** :
+
+```csharp
+public class Product
+{
+    private string _name;  // Pas de underscore
+
+    public Product(string name)
+    {
+        _name = name;  // Pas de "this."
+    }
+}
+```
+
+---
+
+## 💬 Remarques Utilisateur
+
+Cette section contient des feedbacks et préférences spécifiques de l'utilisateur concernant le style de code, les patterns préférés, ou les ajustements à apporter.
+
+> **Note** : Cette section est enrichie au fur et à mesure des retours utilisateur.
+
+<!--
+Exemples de remarques :
+- Préférer async/await à Task.Result
+- Utiliser des records pour les DTOs immuables
+- Logger tous les appels API
+-->
+
+---
+
+## ⚡ Optimisation de Workflow
+
+### Batch Operations
+
+**Parallélisation des Lectures** :
+
+- Lire plusieurs fichiers en un seul appel d'outil
+- Combiner les recherches indépendantes
+- Éviter les appels séquentiels quand possible
+
+**Édition en Batch** :
+
+- Utiliser `multi_replace_string_in_file` pour éditer plusieurs fichiers d'un coup
+- Plus rapide et moins coûteux que des éditions séquentielles
+
+### Lazy Evaluation
+
+- Ne charger QUE le contexte nécessaire
+- Pas de lecture exhaustive du projet si non requis
+- Contexte différé : charger selon les besoins du workflow
+
+### Pattern Multi-Tours
+
+Pour les tâches complexes, décomposer en phases :
+
+1. **Discovery** — Analyser et comprendre le contexte
+2. **Planning** — Proposer un plan d'action (STOP → validation utilisateur)
+3. **Execution** — Appliquer les changements
+4. **Validation** — Vérifier et corriger si nécessaire
+
+**Quand décomposer** :
+
+- ✅ Tâche nécessitant > 10 recherches
+- ✅ Workflow incertain (exploration)
+- ✅ Besoin d'analyse complexe avant décision
+
+**Approche directe si** :
+
+- ✅ Workflow linéaire et connu
+- ✅ < 5 fichiers à modifier
