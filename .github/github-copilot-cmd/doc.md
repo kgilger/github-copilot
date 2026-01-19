@@ -1,111 +1,233 @@
-# /doc — Agrégateur de CHANGENOTES vers Documentation
+# /doc — Générateur de Documentation Technique Versionnée
 
 ## Description
 
-Agrège les fichiers CHANGENOTES/ en un CHANGELOG.md unifié. Peut versionner la documentation et archiver les notes traitées.
+Génère et maintient une documentation technique versionnée (`DOCS/<nom_app>-doc.md`) en agrégeant les CHANGENOTES. Inclut une Architecture Overview organisée par composants majeurs et un historique des versions. Archive automatiquement chaque version dans `DOCS/ARCHIVES/` avant mise à jour.
 
 ## Allowed Tools
 
-- `read_file` — Lire les CHANGENOTES et le CHANGELOG existant
-- `list_dir` — Lister les fichiers dans CHANGENOTES/
-- `create_file` — Créer/mettre à jour CHANGELOG.md et archives
-- `run_in_terminal` — Supprimer les CHANGENOTES traitées
+- `read_file` — Lire les CHANGENOTES, doc existante, fichiers de config
+- `list_dir` — Lister CHANGENOTES/ et explorer le workspace
+- `file_search` — Détecter package.json, *.csproj, fichiers d'architecture
+- `semantic_search` — Analyser le code pour détecter composants majeurs
+- `grep_search` — Chercher patterns, classes, interfaces
+- `create_file` — Créer/mettre à jour documentation et archives
+- `replace_string_in_file` — Mettre à jour sections de la doc
+- `run_in_terminal` — Supprimer CHANGENOTES traitées, git operations
 
 ## Validation
 
 Avant exécution, vérifier :
 
 1. [ ] Le dossier `CHANGENOTES/` existe
-2. [ ] Il contient au moins un fichier `.md`
-3. [ ] Si vide → exit silencieux
+2. [ ] Il contient au moins un fichier `.md` (sinon exit silencieux)
+3. [ ] Détecter le nom de l'application pour nommer le fichier doc
 
 ## Context
 
 Collecter ces informations :
 
 ```bash
-ls CHANGENOTES/               # Liste des notes à traiter
-cat CHANGELOG.md              # Contenu existant (si présent)
+ls CHANGENOTES/                       # Liste des notes à traiter
+git rev-parse --show-toplevel         # Racine du projet
+basename $(git rev-parse --show-toplevel)  # Nom du dossier git (fallback)
 ```
+
+**Détection du nom de l'application** (ordre de priorité) :
+1. `package.json` → champ `name`
+2. `*.csproj` → balise `<AssemblyName>` ou nom du fichier
+3. `*.sln` → nom du fichier solution
+4. Nom du dossier racine git (fallback)
 
 ## Workflow
 
-> ⚠️ **IMPORTANT** : Tous les fichiers générés (`CHANGENOTES/`, `CHANGELOG.md`, `docs/versions/`) sont à la **racine du projet**, PAS dans `.github/`
+> ⚠️ **IMPORTANT** : Le fichier de documentation est `DOCS/<nom_app>-doc.md`, les archives dans `DOCS/ARCHIVES/`
 
-### 1. Collecter les CHANGENOTES
+### 1. Détecter le nom de l'application
+
+- Chercher `package.json`, `*.csproj`, `*.sln` dans le workspace
+- Extraire le nom selon priorité définie dans Context
+- Si rien trouvé → utiliser nom du dossier git
+- Normaliser : lowercase, remplacer espaces par tirets
+
+### 2. Vérifier l'existence de la documentation
+
+**Si `DOCS/<nom_app>-doc.md` n'existe PAS** :
+- Lancer **Analyse Initiale Complète** (voir workflow section 3)
+- Générer la première version de la doc avec version `0.1.0`
+- Skip l'archivage (première version)
+
+**Si `DOCS/<nom_app>-doc.md` existe** :
+- Lire le fichier pour extraire la version actuelle
+- **Archiver** immédiatement dans `DOCS/ARCHIVES/<nom_app>-doc-v{version_actuelle}.md`
+- Continuer le workflow normal
+
+### 3. Analyse Initiale Complète (première génération uniquement)
+
+> Cette étape ne s'exécute QUE si aucune documentation n'existe.
+
+**Objectif** : Créer une Architecture Overview complète en analysant tout le code existant.
+
+**Étapes** :
+1. **Scanner la structure du projet** :
+   - Lister tous les dossiers et fichiers principaux
+   - **Exclure** : `.github/`, `CHANGENOTES/`, `node_modules/`, `bin/`, `obj/`
+   - Identifier les dossiers clés (src/, lib/, api/, services/, etc.)
+   
+2. **Détecter les composants majeurs** :
+   - Chercher les classes, interfaces principales (grep_search)
+   - Identifier les services, repositories, controllers
+   - Détecter les patterns utilisés (search pour: Repository, Factory, Singleton, Strategy)
+   
+3. **Analyser les dépendances** :
+   - Lire package.json / *.csproj pour lister les dépendances externes
+   - Identifier les frameworks principaux (React, Angular, .NET, etc.)
+   
+4. **Identifier les couches architecturales** :
+   - Présence de dossiers UI/Frontend, Business/Services, Data/Repositories
+   - Structure en couches vs modulaire vs microservices
+
+5. **Générer la section Architecture Overview initiale** :
+   - Organiser par **Composants Majeurs** (pas par couches)
+   - Format : Pour chaque composant → Description, Responsabilité, Dépendances, Patterns
+   
+**Critères pour identifier un "Composant Majeur"** :
+- Module/dossier avec ≥3 fichiers de code
+- Classe/Service référencé dans ≥3 fichiers (dépendances entrantes)
+- Présence de tests dédiés
+- Nommage explicite (Service, Repository, Manager, Controller, etc.)
+
+### 4. Collecter les CHANGENOTES
 
 - Lister tous les fichiers dans `<project-root>/CHANGENOTES/`
 - Les trier par date (ordre chronologique du nom de fichier)
 - Parser le frontmatter YAML de chaque fichier
+- Lire les sections Changes, Architecture, Summary
 
-### 2. Grouper par type
+### 5. Calculer la nouvelle version (auto-increment sémantique)
 
-Regrouper les notes par type de commit :
+**Si `--version X.Y.Z` spécifié** → utiliser cette version
 
-| Emoji | Section | Types |
-|-------|---------|-------|
-| 🚀 | **Features** | `feat` |
-| 🐛 | **Bug Fixes** | `fix` |
-| 🔄 | **Updates** | `update` |
-| ♻️ | **Refactoring** | `refactor` |
-| 📝 | **Documentation** | `docs` |
-| 🧪 | **Tests** | `test` |
-| 🔧 | **Chores** | `chore` |
+**Sinon, auto-incrémenter** depuis la version actuelle selon les types des CHANGENOTES :
 
-### 3. Générer/Mettre à jour CHANGELOG.md
+| Condition | Règle de Bump | Exemple |
+|-----------|---------------|---------|
+| Au moins 1 `feat` + breaking change détecté | **Majeure** (X.0.0) | 1.2.3 → 2.0.0 |
+| Au moins 1 `feat` (sans breaking) | **Mineure** (x.Y.0) | 1.2.3 → 1.3.0 |
+| Que des `fix`, `update`, `refactor`, `chore`, `docs`, `test` | **Patch** (x.y.Z) | 1.2.3 → 1.2.4 |
 
-**Structure du CHANGELOG** :
+**Détection de breaking change** :
+- Section "Breaking Changes" présente dans CHANGENOTE
+- Mot-clé "BREAKING" dans le message de commit
+- Composant marqué `[DEPRECATED]` dans section Architecture
+
+**Version de départ** : Si aucune version n'existe → `0.1.0`
+
+### 6. Analyser le delta architectural
+
+Parser les sections "Architecture" des CHANGENOTES collectées :
+
+**SI au moins 1 CHANGENOTE contient section Architecture** :
+- Extraire tous les composants mentionnés (créés, modifiés, deprecated)
+- Identifier les nouveaux patterns introduits
+- Lister les nouvelles dépendances ajoutées
+- **Régénérer complètement la section Architecture Overview**
+
+**Règles de régénération** :
+- Lire la doc actuelle pour avoir le contexte existant
+- Fusionner avec les nouveaux composants détectés
+- Appliquer règles de cycle de vie DEPRECATED :
+  - **CHANGENOTE → DOC** : Si composant marqué deprecated dans CHANGENOTE → ajouter `[DEPRECATED]` dans doc
+  - **DOC → SUPPRESSION** : Si composant déjà `[DEPRECATED]` dans doc actuelle → le retirer complètement de la nouvelle doc
+
+**SI aucune CHANGENOTE avec section Architecture** :
+- Conserver Architecture Overview existante telle quelle
+
+### 7. Générer/Mettre à jour DOCS/<nom_app>-doc.md
+
+**Structure du fichier** :
+
 ```markdown
-# Changelog
+# <Nom Application> — Documentation Technique
 
-All notable changes to this project will be documented in this file.
+> **Version** : X.Y.Z | **Dernière mise à jour** : YYYY-MM-DD
 
-## [Unreleased]
+---
 
-### 🚀 Features
-- **scope:** description (hash)
+## Architecture Overview
 
-### 🐛 Bug Fixes
-- **scope:** description (hash)
+Cette section décrit l'architecture actuelle de l'application organisée par composants majeurs.
+
+### <Composant 1>
+
+**Responsabilité** : Description du rôle du composant
+
+**Implémentation** :
+- Fichiers principaux : `path/to/file.ts`, `path/to/other.ts`
+- Patterns utilisés : Repository Pattern, Dependency Injection
+- Dépendances : EntityFrameworkCore, AutoMapper
+
+**Interfaces publiques** :
+- `IComponentService.Method()` — Description
+
+### <Composant 2>
 
 ...
 
-## [1.0.0] - 2025-12-01
+---
 
-### 🚀 Features
-- ...
+## Version History
+
+### [X.Y.Z] - YYYY-MM-DD
+
+**Résumé** : X features, Y fixes, Z refactors
+
+**Features**
+- **scope** : description (hash)
+
+**Bug Fixes**
+- **scope** : description (hash)
+
+**Refactoring**
+- **scope** : description (hash)
+
+---
+
+### [X.Y.Z-1] - YYYY-MM-DD
+
+...
 ```
 
-**Si pas de version demandée** :
-- Ajouter/mettre à jour la section `## [Unreleased]` en haut
-- Lister les changements groupés par type
+**Génération Architecture Overview** :
+- Organiser par composants majeurs (identifiés via analyse ou CHANGENOTES)
+- Pour chaque composant : Responsabilité, Implémentation (fichiers, patterns, dépendances), Interfaces publiques
+- Exclure les composants `[DEPRECATED]` trouvés dans doc précédente
 
-**Si version demandée** :
-- Remplacer `[Unreleased]` par `[X.Y.Z] - YYYY-MM-DD`
-- Créer une nouvelle section `[Unreleased]` vide au-dessus
+**Génération Version History** :
+- Insérer nouvelle version en tête
+- Grouper par type : Features, Bug Fixes, Refactoring, Documentation, Chores
+- Résumé avec statistiques (X features, Y fixes, etc.)
+- Lister les entrées avec format : `**scope** : description (hash)`
 
-### 4. Archiver (si version)
-
-Si une version est créée :
-- Créer `docs/versions/vX.Y.Z.md` avec le contenu de cette version
-- Contient uniquement les changements de cette version
-
-### 5. Nettoyer les CHANGENOTES
+### 8. Nettoyer les CHANGENOTES
 
 - **Par défaut** : supprimer tous les fichiers traités dans `CHANGENOTES/`
 - **Si `--keep`** : conserver les fichiers
 
 ## Rules
 
-1. **EMPLACEMENT RACINE** — `CHANGENOTES/`, `CHANGELOG.md`, `docs/versions/` sont à la racine du projet (jamais dans `.github/`)
-2. **Ordre chronologique** — CHANGENOTES triées par date (plus récent en haut)
-3. **Groupement par type** — Sections claires avec emojis
-4. **Idempotent** — Relancer sans CHANGENOTES = no-op silencieux
-5. **Pas de duplicata** — Ne pas ré-ajouter des entrées existantes (vérifier hash)
-6. **Format Keep a Changelog** — Respecter le standard https://keepachangelog.com
-7. **NO verbose** — Messages concis uniquement
-8. **NO interactive** — Pas de confirmation demandée
-9. **NO signature** — Pas de "Generated by..."
+1. **EXCLUSIONS** — Ignorer `.github/` et `CHANGENOTES/` lors de l'analyse du code (lire les CHANGENOTES pour agrégation mais pas analyser comme du code)
+2. **EMPLACEMENT** — Documentation dans `DOCS/<nom_app>-doc.md`, archives dans `DOCS/ARCHIVES/`
+3. **ARCHIVAGE SYSTÉMATIQUE** — Toujours archiver avant toute modification (sauf première génération)
+3. **AUTO-INCREMENT** — Version calculée automatiquement selon types CHANGENOTES (sauf si `--version` forcé)
+4. **ANALYSE INITIALE** — Si aucune doc existe, scanner tout le code pour générer Architecture Overview
+5. **RÉGÉNÉRATION DELTA** — Réécrire Architecture Overview SEULEMENT si CHANGENOTES contiennent section Architecture
+6. **DEPRECATED LIFECYCLE** — CHANGENOTE→doc=[DEPRECATED], doc=[DEPRECATED]→retirer
+7. **COMPOSANTS MAJEURS** — Organisation par composants, pas par couches techniques
+8. **VERSION DÉPART** — 0.1.0 si première génération
+9. **NO verbose** — Messages concis uniquement
+10. **NO interactive** — Pas de confirmation demandée
+11. **NO signature** — Pas de "Generated by..."
 
 ## Arguments
 
@@ -115,19 +237,17 @@ Si une version est créée :
 
 | Argument | Description |
 |----------|-------------|
-| (vide) | Agrège vers [Unreleased], supprime CHANGENOTES |
-| `version` | Agrège + incrémente patch (1.0.0 → 1.0.1) |
-| `version X.Y.Z` | Agrège + force version X.Y.Z |
-| `--keep` ou `-k` | Ne supprime pas les CHANGENOTES |
-| `--dry-run` ou `-d` | Preview sans modification |
+| (vide) | Auto-incrémente version, génère doc, supprime CHANGENOTES |
+| `--version X.Y.Z` ou `-v X.Y.Z` | Force version spécifique (ex: `/doc -v 2.0.0`) |
+| `--keep` ou `-k` | Ne supprime pas les CHANGENOTES après agrégation |
+| `--dry-run` ou `-d` | Preview des changements sans modification |
 | `--help` ou `-h` | Affiche l'aide de la commande |
 
 **Combinaisons possibles** :
-- `/doc` — Agrège et nettoie
-- `/doc version` — Release avec auto-increment
-- `/doc version 2.0.0` — Release forcée
-- `/doc --keep` — Agrège sans supprimer
-- `/doc version --dry-run` — Preview release
+- `/doc` — Auto-increment + génère + nettoie
+- `/doc -v 2.0.0` — Force version 2.0.0
+- `/doc --keep` — Génère sans supprimer CHANGENOTES
+- `/doc --dry-run` — Preview sans action
 
 ## Execution
 
@@ -141,29 +261,35 @@ Si une version est créée :
 
 **Mode normal** :
 ```
-✓ CHANGELOG.md updated [Unreleased] (+5 entries)
+✓ DOCS/<nom_app>-doc.md updated [X.Y.Z] - YYYY-MM-DD
+  → Archived: DOCS/ARCHIVES/<nom_app>-doc-vX.Y.Z-1.md
+  → Architecture Overview regenerated (5 components)
+  → Version History: +5 entries (3 features, 2 fixes)
   ✗ CHANGENOTES/ cleared (5 files)
 ```
 
-**Mode version** :
+**Première génération** :
 ```
-✓ CHANGELOG.md updated [1.2.0] - 2025-12-11 (+5 entries)
-  → docs/versions/v1.2.0.md created
-  ✗ CHANGENOTES/ cleared (5 files)
+✓ DOCS/<nom_app>-doc.md created [0.1.0] - YYYY-MM-DD
+  → Architecture Overview generated (7 components)
+  → Initial analysis: src/, api/, services/ scanned
+  ✗ CHANGENOTES/ cleared (1 file)
 ```
 
 **Mode --keep** :
 ```
-✓ CHANGELOG.md updated [Unreleased] (+5 entries)
+✓ DOCS/<nom_app>-doc.md updated [X.Y.Z] - YYYY-MM-DD
+  → Archived: DOCS/ARCHIVES/<nom_app>-doc-vX.Y.Z-1.md
   ⊙ CHANGENOTES/ kept (5 files)
 ```
 
 **Mode dry-run** :
 ```
-⎔ Would update CHANGELOG.md [Unreleased] (+5 entries)
-  - feat(auth): add login validation
-  - fix(api): handle timeout errors
-  - docs(readme): update installation guide
+⎔ Would update DOCS/<nom_app>-doc.md [1.3.0] - 2026-01-19
+  → Archive current version: v1.2.4
+  → Auto-increment: 1.2.4 → 1.3.0 (1 feat detected)
+  → Architecture: no changes (no Architecture section in CHANGENOTES)
+  → Version History: would add 5 entries (1 feat, 3 fix, 1 refactor)
 ```
 
 **Rien à faire** :
